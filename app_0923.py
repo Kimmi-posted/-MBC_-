@@ -280,7 +280,6 @@ with tab4:
     
     target_cols = ['Date_Only', 'Program_Name', 'DayName', 'Rating']
     if 'WoW_Diff' in display_df.columns: target_cols.append('WoW_Diff')
-    if 'Z_Score' in display_df.columns: target_cols.append('Z_Score')
     
     st.dataframe(
         display_df[target_cols].rename(
