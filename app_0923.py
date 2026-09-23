@@ -177,7 +177,7 @@ st.markdown("---")
 tab1, tab2, tab3, tab4 = st.tabs(["경쟁사 간 시청률 비교", "월별 시청률 추이", "요일별 비교", "상세 수치"])
 
 # -----------------------------------------------------------------------------
-# 📌 탭 1: 타임라인 (매월 초일/말일 전용 X축 눈금 커스텀)
+# 📌 탭 1: 타임라인 (에러 수정 및 매월 초일/말일 X축 눈금 설정)
 # -----------------------------------------------------------------------------
 with tab1:
     title_suffix = f"({start_date.strftime('%Y-%m-%d')} 당일)" if is_single_day else f"({start_date} ~ {end_date})"
@@ -215,13 +215,12 @@ with tab1:
             hovertemplate=f'<b>{prog}</b><br>일자: %{{x}}<br>시청률: %{{y:.2f}}%<extra></extra>'
         ))
 
-    # 💡 동적 눈금 생성: 매월 초일(is_month_start) 및 말일(is_month_end) 추출
+    # 💡 [에러 수정] DatetimeIndex로 명시적 변환하여 안전하게 초일/말일 추출
     if is_single_day:
-        # 단일 일자 모드: 선택된 날짜 하나만 축에 표출
         tick_vals = [start_date.strftime('%Y-%m-%d')]
     else:
-        # 전체/기간 모드: 데이터 내 모든 날짜 중 초일 또는 말일인 날짜만 선별
-        unique_dates = pd.to_datetime(filtered_df['Date'].unique()).sort_values()
+        # DatetimeIndex 형식을 직접 지정하여 numpy.ndarray AttributeErrors 방지
+        unique_dates = pd.DatetimeIndex(filtered_df['Date'].unique()).sort_values()
         month_boundary_dates = unique_dates[unique_dates.is_month_start | unique_dates.is_month_end]
         tick_vals = month_boundary_dates.strftime('%Y-%m-%d').tolist()
 
@@ -233,9 +232,9 @@ with tab1:
         xaxis=dict(
             type='category',
             tickmode='array',
-            tickvals=tick_vals,      # 💡 매월 초일 및 말일 포지션만 지정
-            ticktext=tick_vals,      # 💡 눈금 텍스트 지정
-            tickangle=-45            # 💡 가독성을 위해 -45도 기울임 처리
+            tickvals=tick_vals,
+            ticktext=tick_vals,
+            tickangle=-45
         ),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
