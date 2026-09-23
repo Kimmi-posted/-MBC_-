@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📺 제주MBC 타깃 vs 경쟁 프로그램 시청률 정밀 비교 분석")
+st.title("제주MBC 타깃 vs 경쟁 프로그램 시청률 정밀 비교 분석")
 st.markdown("---")
 
 # 💡 클라우드 및 로컬 환경 동시 대응 (동적 상대 경로)
@@ -66,7 +66,7 @@ def load_all_data(base_path, year):
 # -----------------------------------------------------------------------------
 # 3. 사이드바 비교 필터
 # -----------------------------------------------------------------------------
-st.sidebar.header("🎯 타깃 & 경쟁사 필터")
+st.sidebar.header("타겟 프로그램 / 경쟁 프로그램 필터")
 
 target_year = st.sidebar.selectbox("연도 선택", [2026, 2025], index=0)
 raw_df = load_all_data(base_dir, target_year)
@@ -79,14 +79,14 @@ available_programs = raw_df['Program_Name'].unique().tolist()
 
 default_target_idx = available_programs.index("뉴스데스크") if "뉴스데스크" in available_programs else 0
 focus_program = st.sidebar.selectbox(
-    "1. 🎯 주 타깃 프로그램 (가장 강조)",
+    "1. 시청률 비교 기준",
     options=available_programs,
     index=default_target_idx
 )
 
 other_programs = [p for p in available_programs if p != focus_program]
 selected_competitors = st.sidebar.multiselect(
-    "2. ⚔️ 비교할 경쟁 프로그램 (다중 선택)",
+    "2. 경쟁 프로그램",
     options=other_programs,
     default=other_programs
 )
@@ -101,7 +101,7 @@ max_date = raw_df['Date'].max().date()
 
 if is_single_day:
     selected_single_date = st.sidebar.date_input(
-        "분석할 특정 날짜 선택",
+        "시청률 확인 날짜 선택",
         value=min_date,
         min_value=min_date,
         max_value=max_date
@@ -109,7 +109,7 @@ if is_single_day:
     start_date = end_date = selected_single_date
 else:
     selected_dates = st.sidebar.date_input(
-        "조회 기간 설정 (시작일 ~ 종료일)",
+        "조회 기간 (시작일 ~ 종료일)",
         value=(min_date, max_date),
         min_value=min_date,
         max_value=max_date
@@ -132,9 +132,9 @@ filtered_df = raw_df[
 # -----------------------------------------------------------------------------
 if is_single_day:
     display_date_str = start_date.strftime('%Y-%m-%d')
-    st.subheader(f"📅 [{display_date_str}] 당일 시청률 성과 요약")
+    st.subheader(f"[{display_date_str}] 당일 시청률 성과 요약")
 else:
-    st.subheader("📊 선택 기간 평균 성과 요약")
+    st.subheader("선택 기간 평균 성과 요약")
 
 focus_df = filtered_df[filtered_df['Program_Name'] == focus_program]
 focus_rating = focus_df['Rating'].iloc[0] if (is_single_day and not focus_df.empty) else (focus_df['Rating'].mean() if not focus_df.empty else 0)
@@ -149,7 +149,7 @@ for idx, prog in enumerate(all_selected):
             metric_title = "당일 시청률" if is_single_day else "평균 시청률"
             
             if prog == focus_program:
-                st.markdown(f"### 🎯 **{prog}** (타깃)")
+                st.markdown(f"### **{prog}** (타깃)")
                 st.metric(metric_title, f"{curr_rating:.2f}%")
                 if is_single_day:
                     day_name = p_df['DayName'].iloc[0]
@@ -158,7 +158,7 @@ for idx, prog in enumerate(all_selected):
                     st.caption(f"최고: {p_df['Rating'].max():.1f}% | 표준편차: {p_df['Rating'].std():.2f}")
             else:
                 diff_vs_target = curr_rating - focus_rating
-                st.markdown(f"### ⚔️ {prog}")
+                st.markdown(f"### {prog}")
                 st.metric(metric_title, f"{curr_rating:.2f}%", delta=f"{diff_vs_target:+.2f}%p (타깃 대비)", delta_color="inverse")
                 if is_single_day:
                     day_name = p_df['DayName'].iloc[0]
@@ -166,7 +166,7 @@ for idx, prog in enumerate(all_selected):
                 else:
                     st.caption(f"최고: {p_df['Rating'].max():.1f}% | 표준편차: {p_df['Rating'].std():.2f}")
         else:
-            st.markdown(f"### ⚔️ {prog}")
+            st.markdown(f"### {prog}")
             st.warning("해당 일자 미방송")
 
 st.markdown("---")
@@ -181,7 +181,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["경쟁사 간 시청률 비교", "월별 시�
 # -----------------------------------------------------------------------------
 with tab1:
     title_suffix = f"({start_date.strftime('%Y-%m-%d')} 당일)" if is_single_day else f"({start_date} ~ {end_date})"
-    st.subheader(f"🎯 [{focus_program}] vs ⚔️ 경쟁사 일자별 시청률 추이 {title_suffix}")
+    st.subheader(f"[{focus_program}] vs 경쟁사 일자별 시청률 추이 {title_suffix}")
     
     fig = go.Figure()
     comp_colors = ['#1D3557', '#457B9D', '#2A9D8F', '#E9C46A', '#F4A261', '#9C89B8']
@@ -208,7 +208,7 @@ with tab1:
             x=x_dates,
             y=prog_df['Rating'],
             mode='lines+markers',
-            name=f"🎯 {prog}" if prog == focus_program else prog,
+            name=f" {prog}" if prog == focus_program else prog,
             line=dict(color=line_color, width=line_width),
             opacity=opacity,
             marker=dict(size=10 if is_single_day else (5 if prog == focus_program else 3)),
@@ -307,7 +307,7 @@ with tab3:
 
 # 📌 탭 4: 정밀 통계 표
 with tab4:
-    st.subheader("📋 선택 정밀 시청률 데이터 표")
+    st.subheader("시청률 데이터")
     
     display_df = filtered_df.copy()
     display_df['Date_Only'] = display_df['Date'].dt.strftime('%Y-%m-%d')
@@ -326,7 +326,7 @@ with tab4:
     csv_download_df['Date'] = csv_download_df['Date'].dt.strftime('%Y-%m-%d')
     
     st.download_button(
-        label="📥 필터링된 데이터 CSV 다운로드",
+        label="필터링된 데이터(.CSV) 다운로드",
         data=csv_download_df.to_csv(index=False).encode('utf-8-sig'),
         file_name=f"제주MBC_시청률_필터데이터_{target_year}.csv",
         mime='text/csv'
