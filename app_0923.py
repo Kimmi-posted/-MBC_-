@@ -177,7 +177,7 @@ st.markdown("---")
 tab1, tab2, tab3, tab4 = st.tabs(["경쟁사 간 시청률 비교", "월별 시청률 추이", "요일별 비교", "상세 수치"])
 
 # -----------------------------------------------------------------------------
-# 📌 탭 1: 타임라인 (매월 초일만 X축 눈금으로 표출)
+# 📌 탭 1: 타임라인 (월별 첫 실제 방송일 동적 계산 X축 적용)
 # -----------------------------------------------------------------------------
 with tab1:
     title_suffix = f"({start_date.strftime('%Y-%m-%d')} 당일)" if is_single_day else f"({start_date} ~ {end_date})"
@@ -215,20 +215,20 @@ with tab1:
             hovertemplate=f'<b>{prog}</b><br>일자: %{{x}}<br>시청률: %{{y:.2f}}%<extra></extra>'
         ))
 
-    # 💡 [핵심 수정] 매월 초일(is_month_start)만 추출하도록 조건 단순화
+    # 💡 [핵심 수정] 각 월(Year-Month)별 '실제 존재하는 첫 방송일'을 추출
     if is_single_day:
         tick_vals = [start_date.strftime('%Y-%m-%d')]
     else:
+        # 1. 고유 날짜 데이터셋을 DatetimeIndex 및 DataFrame으로 구성
         unique_dates = pd.DatetimeIndex(filtered_df['Date'].unique()).sort_values()
+        date_df = pd.DataFrame({'Date': unique_dates})
         
-        # is_month_start(매월 1일)인 날짜만 추출
-        month_start_dates = unique_dates[unique_dates.is_month_start]
+        # 2. 연-월(Year-Month) 그룹화 후 각 월의 가장 첫 번째(최소) 날짜 추출
+        date_df['YearMonth'] = date_df['Date'].dt.to_period('M')
+        first_broadcast_days = date_df.groupby('YearMonth')['Date'].min()
         
-        # 만약 선택한 기간에 1일이 없는 경우 대비 예외 처리 (데이터 첫 날짜 포함)
-        if len(month_start_dates) == 0:
-            month_start_dates = unique_dates[::30]  # 약 30일 간격 표출
-            
-        tick_vals = month_start_dates.strftime('%Y-%m-%d').tolist()
+        # 3. YYYY-MM-DD 문자열 리스트로 변환
+        tick_vals = first_broadcast_days.dt.strftime('%Y-%m-%d').tolist()
 
     fig.update_layout(
         height=550, 
@@ -240,7 +240,7 @@ with tab1:
             tickmode='array',
             tickvals=tick_vals,
             ticktext=tick_vals,
-            tickangle=0  # 💡 겹침이 해소되었으므로 직관성을 위해 수평(0도)으로 정렬
+            tickangle=0
         ),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
