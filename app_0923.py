@@ -94,7 +94,7 @@ selected_competitors = st.sidebar.multiselect(
 all_selected = [focus_program] + selected_competitors
 
 st.sidebar.markdown("---")
-is_single_day = st.sidebar.checkbox("📌 단일 일자 정밀 분석 모드", value=False)
+is_single_day = st.sidebar.checkbox("📌 특정일 기준 분석", value=False)
 
 min_date = raw_df['Date'].min().date()
 max_date = raw_df['Date'].max().date()
