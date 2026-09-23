@@ -177,7 +177,7 @@ st.markdown("---")
 tab1, tab2, tab3, tab4 = st.tabs(["경쟁사 간 시청률 비교", "월별 시청률 추이", "요일별 비교", "상세 수치"])
 
 # -----------------------------------------------------------------------------
-# 📌 탭 1: 타임라인 (X축 날짜 포맷 및 눈금 정제 적용)
+# 📌 탭 1: 타임라인 (매월 초일/말일 전용 X축 눈금 커스텀)
 # -----------------------------------------------------------------------------
 with tab1:
     title_suffix = f"({start_date.strftime('%Y-%m-%d')} 당일)" if is_single_day else f"({start_date} ~ {end_date})"
@@ -192,7 +192,6 @@ with tab1:
         if prog_df.empty:
             continue
             
-        # 💡 날짜를 'YYYY-MM-DD' 문자열 형태로 변환하여 X축 밀림 및 시간 표기 방지
         x_dates = prog_df['Date'].dt.strftime('%Y-%m-%d')
         
         if prog == focus_program:
@@ -206,7 +205,7 @@ with tab1:
             opacity = 0.85
 
         fig.add_trace(go.Scatter(
-            x=x_dates,  # 문자열 변환된 날짜 적용
+            x=x_dates,
             y=prog_df['Rating'],
             mode='lines+markers',
             name=f"🎯 {prog}" if prog == focus_program else prog,
@@ -216,14 +215,27 @@ with tab1:
             hovertemplate=f'<b>{prog}</b><br>일자: %{{x}}<br>시청률: %{{y:.2f}}%<extra></extra>'
         ))
 
+    # 💡 동적 눈금 생성: 매월 초일(is_month_start) 및 말일(is_month_end) 추출
+    if is_single_day:
+        # 단일 일자 모드: 선택된 날짜 하나만 축에 표출
+        tick_vals = [start_date.strftime('%Y-%m-%d')]
+    else:
+        # 전체/기간 모드: 데이터 내 모든 날짜 중 초일 또는 말일인 날짜만 선별
+        unique_dates = pd.to_datetime(filtered_df['Date'].unique()).sort_values()
+        month_boundary_dates = unique_dates[unique_dates.is_month_start | unique_dates.is_month_end]
+        tick_vals = month_boundary_dates.strftime('%Y-%m-%d').tolist()
+
     fig.update_layout(
         height=550, 
         hovermode="x unified",
         xaxis_title="방송 일자",
         yaxis_title="시청률 (%)",
         xaxis=dict(
-            type='category',  # 💡 범주형 축으로 지정하여 시간/초 단위 자동 생성을 원천 차단
-            tickangle=0
+            type='category',
+            tickmode='array',
+            tickvals=tick_vals,      # 💡 매월 초일 및 말일 포지션만 지정
+            ticktext=tick_vals,      # 💡 눈금 텍스트 지정
+            tickangle=-45            # 💡 가독성을 위해 -45도 기울임 처리
         ),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
