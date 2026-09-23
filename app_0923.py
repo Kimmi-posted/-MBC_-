@@ -177,7 +177,7 @@ st.markdown("---")
 tab1, tab2, tab3, tab4 = st.tabs(["경쟁사 간 시청률 비교", "월별 시청률 추이", "요일별 비교", "상세 수치"])
 
 # -----------------------------------------------------------------------------
-# 📌 탭 1: 타임라인 (에러 수정 및 매월 초일/말일 X축 눈금 설정)
+# 📌 탭 1: 타임라인 (매월 초일만 X축 눈금으로 표출)
 # -----------------------------------------------------------------------------
 with tab1:
     title_suffix = f"({start_date.strftime('%Y-%m-%d')} 당일)" if is_single_day else f"({start_date} ~ {end_date})"
@@ -215,14 +215,20 @@ with tab1:
             hovertemplate=f'<b>{prog}</b><br>일자: %{{x}}<br>시청률: %{{y:.2f}}%<extra></extra>'
         ))
 
-    # 💡 [에러 수정] DatetimeIndex로 명시적 변환하여 안전하게 초일/말일 추출
+    # 💡 [핵심 수정] 매월 초일(is_month_start)만 추출하도록 조건 단순화
     if is_single_day:
         tick_vals = [start_date.strftime('%Y-%m-%d')]
     else:
-        # DatetimeIndex 형식을 직접 지정하여 numpy.ndarray AttributeErrors 방지
         unique_dates = pd.DatetimeIndex(filtered_df['Date'].unique()).sort_values()
-        month_boundary_dates = unique_dates[unique_dates.is_month_start | unique_dates.is_month_end]
-        tick_vals = month_boundary_dates.strftime('%Y-%m-%d').tolist()
+        
+        # is_month_start(매월 1일)인 날짜만 추출
+        month_start_dates = unique_dates[unique_dates.is_month_start]
+        
+        # 만약 선택한 기간에 1일이 없는 경우 대비 예외 처리 (데이터 첫 날짜 포함)
+        if len(month_start_dates) == 0:
+            month_start_dates = unique_dates[::30]  # 약 30일 간격 표출
+            
+        tick_vals = month_start_dates.strftime('%Y-%m-%d').tolist()
 
     fig.update_layout(
         height=550, 
@@ -234,7 +240,7 @@ with tab1:
             tickmode='array',
             tickvals=tick_vals,
             ticktext=tick_vals,
-            tickangle=-45
+            tickangle=0  # 💡 겹침이 해소되었으므로 직관성을 위해 수평(0도)으로 정렬
         ),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
