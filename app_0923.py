@@ -153,7 +153,7 @@ for idx, prog in enumerate(all_selected):
                 st.metric(metric_title, f"{curr_rating:.2f}%")
                 if is_single_day:
                     day_name = p_df['DayName'].iloc[0]
-                    st.caption(f"방송 요일: ({day_name})요일")
+                    st.caption(f"방송 요일: {day_name}요일")
                 else:
                     st.caption(f"최고: {p_df['Rating'].max():.1f}% | 표준편차: {p_df['Rating'].std():.2f}")
             else:
@@ -162,7 +162,7 @@ for idx, prog in enumerate(all_selected):
                 st.metric(metric_title, f"{curr_rating:.2f}%", delta=f"{diff_vs_target:+.2f}%p (타깃 대비)", delta_color="inverse")
                 if is_single_day:
                     day_name = p_df['DayName'].iloc[0]
-                    st.caption(f"방송 요일: ({day_name})요일")
+                    st.caption(f"방송 요일: {day_name}요일")
                 else:
                     st.caption(f"최고: {p_df['Rating'].max():.1f}% | 표준편차: {p_df['Rating'].std():.2f}")
         else:
