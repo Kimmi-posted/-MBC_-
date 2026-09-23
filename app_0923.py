@@ -220,10 +220,15 @@ with tab1:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# 📌 탭 2: 월별 추이
+# -----------------------------------------------------------------------------
+# 📌 탭 2: 월별 추이 (특정일 모드와 상관없이 연간 데이터 기준 집계)
+# -----------------------------------------------------------------------------
 with tab2:
     st.subheader("월별 시청률 점유 점검 (그룹 막대)")
-    monthly_df = filtered_df.groupby(['Month', 'Program_Name'])['Rating'].mean().reset_index()
+    
+    # 💡 filtered_df 대신 selected 프로그램 전체 연간 raw_df를 사용하여 월평균 계산
+    year_selected_df = raw_df[raw_df['Program_Name'].isin(all_selected)]
+    monthly_df = year_selected_df.groupby(['Month', 'Program_Name'])['Rating'].mean().reset_index()
     
     fig_m = px.bar(
         monthly_df, 
@@ -237,12 +242,15 @@ with tab2:
     fig_m.update_layout(height=480, xaxis=dict(tickmode='linear', tick0=1, dtick=1))
     st.plotly_chart(fig_m, use_container_width=True)
 
-# 📌 탭 3: 요일별 패턴
+# -----------------------------------------------------------------------------
+# 📌 탭 3: 요일별 패턴 (특정일 모드와 상관없이 연간 데이터 기준 집계)
+# -----------------------------------------------------------------------------
 with tab3:
     st.subheader("요일별 평균 시청률 패턴 (월 ~ 일 순서)")
     day_order = ['월', '화', '수', '목', '금', '토', '일']
-    weekly_df = filtered_df.groupby(['DayName', 'Program_Name'])['Rating'].mean().reset_index()
     
+    # 💡 마찬가지로 연간 raw_df 기준으로 요일별 평균 계산
+    weekly_df = year_selected_df.groupby(['DayName', 'Program_Name'])['Rating'].mean().reset_index()
     weekly_df['DayName'] = pd.Categorical(weekly_df['DayName'], categories=day_order, ordered=True)
     weekly_df = weekly_df.sort_values(['Program_Name', 'DayName'])
 
