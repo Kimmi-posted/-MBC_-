@@ -4,24 +4,19 @@ import plotly.express as px
 import plotly.graph_objects as go
 import os
 
-# -----------------------------------------------------------------------------
-# 1. 페이지 환경 설정
-# -----------------------------------------------------------------------------
+
+# 페이지 환경 설정
 st.set_page_config(
     page_title="제주MBC 시청률 경쟁 비교 대시보드",
-    page_icon="📺",
     layout="wide"
 )
 
-st.title("제주MBC 타깃 vs 경쟁 프로그램 시청률 정밀 비교 분석")
+st.title("타겟 프로그램 vs 경쟁 프로그램 시청률 비교 분석")
 st.markdown("---")
 
-# 💡 클라우드 및 로컬 환경 동시 대응 (동적 상대 경로)
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
-# -----------------------------------------------------------------------------
-# 2. 데이터 로드 함수 (다중 경로 자동 탐색)
-# -----------------------------------------------------------------------------
+# 데이터 로드
 @st.cache_data
 def load_all_data(base_path, year):
     all_dfs = []
@@ -30,14 +25,11 @@ def load_all_data(base_path, year):
     for prog in programs:
         csv_file_name = f"{year}년_{prog}_고급통계분석.csv"
         
-        # 1) 메인/현재 폴더 경로 확인
         csv_path = os.path.join(base_path, csv_file_name)
         
-        # 2) '프로그램별 시청률/연도' 하위 폴더 확인
         if not os.path.exists(csv_path):
             csv_path = os.path.join(base_path, "프로그램별 시청률", str(year), csv_file_name)
             
-        # 3) '프로그램별 시청률' 하위 폴더 확인
         if not os.path.exists(csv_path):
             csv_path = os.path.join(base_path, "프로그램별 시청률", csv_file_name)
 
@@ -63,16 +55,15 @@ def load_all_data(base_path, year):
         
     return df
 
-# -----------------------------------------------------------------------------
-# 3. 사이드바 비교 필터
-# -----------------------------------------------------------------------------
+
+# 사이드바 설정
 st.sidebar.header("타겟 프로그램 / 경쟁 프로그램 필터")
 
 target_year = st.sidebar.selectbox("연도 선택", [2026, 2025], index=0)
 raw_df = load_all_data(base_dir, target_year)
 
 if raw_df is None:
-    st.error(f"❌ {target_year}년 시청률 분석 데이터 CSV 파일을 찾을 수 없습니다. GitHub 저장소에 데이터 파일이 존재해야 합니다.")
+    st.error(f"❌ {target_year} 시청률 데이터 파일이 없습니다. 작성자에게 문의 부탁드립니다.")
     st.stop()
 
 available_programs = raw_df['Program_Name'].unique().tolist()
@@ -94,7 +85,7 @@ selected_competitors = st.sidebar.multiselect(
 all_selected = [focus_program] + selected_competitors
 
 st.sidebar.markdown("---")
-is_single_day = st.sidebar.checkbox("📌 특정일 기준 분석", value=False)
+is_single_day = st.sidebar.checkbox("특정일 기준 분석", value=False)
 
 min_date = raw_df['Date'].min().date()
 max_date = raw_df['Date'].max().date()
@@ -127,9 +118,7 @@ filtered_df = raw_df[
     (raw_df['Date'].dt.date <= end_date)
 ].copy()
 
-# -----------------------------------------------------------------------------
-# 4. 상단 KPI 카드 (단일 출력 처리)
-# -----------------------------------------------------------------------------
+# 상단 KPI 카드 (단일 출력 처리)
 if is_single_day:
     display_date_str = start_date.strftime('%Y-%m-%d')
     st.subheader(f"[{display_date_str}] 당일 시청률 성과 요약")
@@ -167,18 +156,14 @@ for idx, prog in enumerate(all_selected):
                     st.caption(f"최고: {p_df['Rating'].max():.1f}% | 표준편차: {p_df['Rating'].std():.2f}")
         else:
             st.markdown(f"### {prog}")
-            st.warning("해당 일자 미방송")
+            st.warning("설정 일자 미방송")
 
 st.markdown("---")
 
-# -----------------------------------------------------------------------------
-# 5. 인터랙티브 비교 차트 탭
-# -----------------------------------------------------------------------------
+# 인터랙티브 차트 설정
 tab1, tab2, tab3, tab4 = st.tabs(["경쟁사 간 시청률 비교", "월별 시청률 추이", "요일별 비교", "상세 수치"])
 
-# -----------------------------------------------------------------------------
-# 📌 탭 1: 타임라인 (월별 첫 실제 방송일 동적 계산 X축 적용)
-# -----------------------------------------------------------------------------
+# 시청률 타임라인 탭(월별 첫 방송일 X축 적용)
 with tab1:
     title_suffix = f"({start_date.strftime('%Y-%m-%d')} 당일)" if is_single_day else f"({start_date} ~ {end_date})"
     st.subheader(f"[{focus_program}] vs 경쟁사 일자별 시청률 추이 {title_suffix}")
@@ -215,19 +200,15 @@ with tab1:
             hovertemplate=f'<b>{prog}</b><br>일자: %{{x}}<br>시청률: %{{y:.2f}}%<extra></extra>'
         ))
 
-    # 💡 [핵심 수정] 각 월(Year-Month)별 '실제 존재하는 첫 방송일'을 추출
     if is_single_day:
         tick_vals = [start_date.strftime('%Y-%m-%d')]
     else:
-        # 1. 고유 날짜 데이터셋을 DatetimeIndex 및 DataFrame으로 구성
         unique_dates = pd.DatetimeIndex(filtered_df['Date'].unique()).sort_values()
         date_df = pd.DataFrame({'Date': unique_dates})
         
-        # 2. 연-월(Year-Month) 그룹화 후 각 월의 가장 첫 번째(최소) 날짜 추출
         date_df['YearMonth'] = date_df['Date'].dt.to_period('M')
         first_broadcast_days = date_df.groupby('YearMonth')['Date'].min()
         
-        # 3. YYYY-MM-DD 문자열 리스트로 변환
         tick_vals = first_broadcast_days.dt.strftime('%Y-%m-%d').tolist()
 
     fig.update_layout(
@@ -246,13 +227,12 @@ with tab1:
     )
     st.plotly_chart(fig, use_container_width=True)
 
-# -----------------------------------------------------------------------------
-# 📌 탭 2: 월별 추이 (특정일 모드와 상관없이 연간 데이터 기준 집계)
-# -----------------------------------------------------------------------------
+
+# 월별 시청률 추이
+
 with tab2:
-    st.subheader("월별 시청률 점유 점검 (그룹 막대)")
+    st.subheader("월별 시청률 (프로그램 단위)")
     
-    # 💡 filtered_df 대신 selected 프로그램 전체 연간 raw_df를 사용하여 월평균 계산
     year_selected_df = raw_df[raw_df['Program_Name'].isin(all_selected)]
     monthly_df = year_selected_df.groupby(['Month', 'Program_Name'])['Rating'].mean().reset_index()
     
@@ -268,14 +248,12 @@ with tab2:
     fig_m.update_layout(height=480, xaxis=dict(tickmode='linear', tick0=1, dtick=1))
     st.plotly_chart(fig_m, use_container_width=True)
 
-# -----------------------------------------------------------------------------
-# 📌 탭 3: 요일별 패턴 (특정일 모드와 상관없이 연간 데이터 기준 집계)
-# -----------------------------------------------------------------------------
+
+# 요일별 패턴 (연간 데이터 기준)
 with tab3:
-    st.subheader("요일별 평균 시청률 패턴 (월 ~ 일 순서)")
+    st.subheader("요일별 평균 시청률 (월요일 ~ 일요일)")
     day_order = ['월', '화', '수', '목', '금', '토', '일']
     
-    # 💡 마찬가지로 연간 raw_df 기준으로 요일별 평균 계산
     weekly_df = year_selected_df.groupby(['DayName', 'Program_Name'])['Rating'].mean().reset_index()
     weekly_df['DayName'] = pd.Categorical(weekly_df['DayName'], categories=day_order, ordered=True)
     weekly_df = weekly_df.sort_values(['Program_Name', 'DayName'])
@@ -305,7 +283,7 @@ with tab3:
     )
     st.plotly_chart(fig_w, use_container_width=True)
 
-# 📌 탭 4: 정밀 통계 표
+# 상세 정보
 with tab4:
     st.subheader("시청률 데이터")
     
